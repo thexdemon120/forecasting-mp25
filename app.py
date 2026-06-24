@@ -7,7 +7,6 @@ Original file is located at
     https://colab.research.google.com/drive/1oxgg-wgnsVhDhqvoDxqWMIDZtbloET_S
 """
 
-!pip install streamlit
 import streamlit as st
 import joblib
 import numpy as np
@@ -28,10 +27,12 @@ st.markdown("*Ingresa los valores para predecir la concentración horaria de MP2
 @st.cache_resource
 def cargar_modelo():
     try:
+        # Intentamos cargar el archivo
         model = joblib.load('modelo_forecasting_mp25_xgb.pkl')
         return model
-    except:
-        st.error("❌ No se encontró el archivo del modelo.")
+    except Exception as e:
+        # ¡Aquí está el truco! Ahora nos dirá el error REAL en la pantalla
+        st.error(f"❌ Error al cargar el modelo: {e}")
         return None
 
 model = cargar_modelo()
@@ -40,27 +41,27 @@ if model is not None:
     # --- Formulario de entrada ---
     with st.form("prediccion_form"):
         col1, col2 = st.columns(2)
-
+        
         with col1:
             hora = st.number_input("🕐 HORA (0-23)", min_value=0, max_value=23, value=20, step=1)
             dia_semana = st.number_input("📅 DÍA_SEMANA (0=Lunes, 6=Domingo)", min_value=0, max_value=6, value=2, step=1)
             mes = st.number_input("📆 MES (1-12)", min_value=1, max_value=12, value=7, step=1)
-
+        
         with col2:
             lag_1 = st.number_input("🔄 LAG_1 (hora anterior en µg/m³)", min_value=0.0, value=45.2, step=1.0)
             lag_24 = st.number_input("🔄 LAG_24 (misma hora día anterior en µg/m³)", min_value=0.0, value=38.7, step=1.0)
-
+        
         submitted = st.form_submit_button("🔮 Predecir MP2.5", use_container_width=True)
 
     # --- Predicción ---
     if submitted and model is not None:
         input_data = np.array([[hora, dia_semana, mes, lag_1, lag_24]])
         pred = model.predict(input_data)[0]
-
+        
         st.markdown("---")
         st.subheader("📊 Resultado de la Predicción")
         st.metric("Concentración estimada de MP2.5", f"{pred:.2f} µg/m³")
-
+        
         if pred < 50:
             st.success("✅ *Nivel bajo:* Aire saludable.")
         elif pred < 100:
@@ -69,4 +70,5 @@ if model is not None:
             st.error("🚨 *Nivel alto:* Episodio crítico. ¡Activar alerta!")
 
 st.markdown("---")
+st.caption("Proyecto Minería de Datos - Universidad Bernardo O'Higgins")
 st.caption("Proyecto Minería de Datos - Universidad Bernardo O'Higgins")
